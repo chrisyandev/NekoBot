@@ -11,13 +11,13 @@ namespace NekoBot.Commands
 {
     public class BasicsModule : BaseCommandModule
     {
-        [Command("greet")]
+        //[Command("greet")]
         public async Task GreetCommand(CommandContext ctx, [RemainingText] string name)
         {
             await ctx.RespondAsync($"Greetings {name}!");
         }
 
-        [Command("greet")]
+        //[Command("greet")]
         public async Task GreetCommand(CommandContext ctx, DiscordUser name)
         {
             await ctx.RespondAsync($"Greetings {name}!");
