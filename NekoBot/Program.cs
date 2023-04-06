@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Threading.Tasks;
 using DSharpPlus;
+using DSharpPlus.CommandsNext;
 using Microsoft.Extensions.Configuration;
+using NekoBot.Commands;
 
 namespace NekoBot
 {
@@ -20,10 +22,19 @@ namespace NekoBot
                 Intents = DiscordIntents.AllUnprivileged | DiscordIntents.MessageContents
             });
 
-            client.CreateBot();
+            CreateBot(client);
 
             await client.ConnectAsync();
             await Task.Delay(-1);
+        }
+
+        private static void CreateBot(DiscordClient client)
+        {
+            var commands = client.UseCommandsNext(new CommandsNextConfiguration()
+            {
+                StringPrefixes = new[] { "!" }
+            });
+            commands.RegisterCommands<BasicsModule>();
         }
     }
 }
