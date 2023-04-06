@@ -2,6 +2,7 @@
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity.Extensions;
+using NekoBot.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -30,12 +31,18 @@ namespace NekoBot.Commands
                 [TankRoleName] = DiscordEmoji.FromName(ctx.Client, ":shield:")
             };
 
+            string description = "";
+            foreach (KeyValuePair<string, DiscordEmoji> emojiOpt in emojiOptions)
+            {
+                description += $"\n\n{emojiOpt.Value}" + " = " + $"{emojiOpt.Key.Capitalize()}";
+            }
+
             var msgBuilder = new DiscordMessageBuilder();
             var embed = new DiscordEmbedBuilder()
                 .WithColor(DiscordColor.Orange)
                 .WithTitle("Role Selection")
-                .WithDescription("Select your role to unlock channels")
-                .WithThumbnail(ctx.Client.CurrentUser.AvatarUrl);
+                .WithDescription(description);
+                //.WithThumbnail(ctx.Client.CurrentUser.AvatarUrl);
             msgBuilder.AddEmbed(embed);
 
             var msg = await ctx.Channel.SendMessageAsync(msgBuilder);
@@ -54,26 +61,24 @@ namespace NekoBot.Commands
 
                 var member = e.User as DiscordMember;
                 DiscordRole? role = null;
-                var allRoles = ctx.Guild.Roles.Values;
+                bool isValidEmoji = false;
 
-                if (e.Emoji == emojiOptions[DpsRoleName])
+                foreach (KeyValuePair<string, DiscordEmoji> emojiOpt in emojiOptions)
                 {
-                    role = allRoles.FirstOrDefault(role => role.Name.ToLower() == DpsRoleName);
+                    if (e.Emoji == emojiOpt.Value)
+                    {
+                        var allRoles = ctx.Guild.Roles.Values;
+                        role = allRoles.FirstOrDefault(role => role.Name.ToLower() == emojiOpt.Key);
+                        isValidEmoji = true;
+                        continue;
+                    }
                 }
-                else if (e.Emoji == emojiOptions[TankRoleName])
-                {
-                    role = allRoles.FirstOrDefault(role => role.Name.ToLower() == TankRoleName);
-                }
-                else if (e.Emoji == emojiOptions[HealerRoleName])
-                {
-                    role = allRoles.FirstOrDefault(role => role.Name.ToLower() == HealerRoleName);
-                }
-                else
+
+                if (!isValidEmoji)
                 {
                     await e.Message.DeleteReactionsEmojiAsync(e.Emoji);
                 }
-
-                if (member != null && role != null)
+                else if (member != null && role != null)
                 {
                     await member.GrantRoleAsync(role);
                 }
@@ -88,26 +93,24 @@ namespace NekoBot.Commands
 
                 var member = e.User as DiscordMember;
                 DiscordRole? role = null;
-                var allRoles = ctx.Guild.Roles.Values;
+                bool isValidEmoji = false;
 
-                if (e.Emoji == emojiOptions[DpsRoleName])
+                foreach (KeyValuePair<string, DiscordEmoji> emojiOpt in emojiOptions)
                 {
-                    role = allRoles.FirstOrDefault(role => role.Name.ToLower() == DpsRoleName);
+                    if (e.Emoji == emojiOpt.Value)
+                    {
+                        var allRoles = ctx.Guild.Roles.Values;
+                        role = allRoles.FirstOrDefault(role => role.Name.ToLower() == emojiOpt.Key);
+                        isValidEmoji = true;
+                        continue;
+                    }
                 }
-                else if (e.Emoji == emojiOptions[TankRoleName])
-                {
-                    role = allRoles.FirstOrDefault(role => role.Name.ToLower() == TankRoleName);
-                }
-                else if (e.Emoji == emojiOptions[HealerRoleName])
-                {
-                    role = allRoles.FirstOrDefault(role => role.Name.ToLower() == HealerRoleName);
-                }
-                else
+
+                if (!isValidEmoji)
                 {
                     await e.Message.DeleteReactionsEmojiAsync(e.Emoji);
                 }
-
-                if (member != null && role != null)
+                else if (member != null && role != null)
                 {
                     await member.RevokeRoleAsync(role);
                 }

@@ -34,7 +34,7 @@ namespace NekoBot
 
             var interactConfig = new InteractivityConfiguration()
             {
-                Timeout = TimeSpan.FromMinutes(5)
+                Timeout = TimeSpan.FromMinutes(3)
             };
             Interactivity = Client.UseInteractivity(interactConfig);
 
