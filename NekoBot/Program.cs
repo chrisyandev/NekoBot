@@ -13,20 +13,16 @@ namespace NekoBot
                 .AddUserSecrets(typeof(Program).Assembly, true)
                 .Build();
 
-            var discord = new DiscordClient(new DiscordConfiguration()
+            var client = new DiscordClient(new DiscordConfiguration()
             {
                 Token = config["TOKEN"],
                 TokenType = TokenType.Bot,
                 Intents = DiscordIntents.AllUnprivileged | DiscordIntents.MessageContents
             });
 
-            discord.MessageCreated += async (s, e) =>
-            {
-                if (e.Message.Content.ToLower().StartsWith("ping"))
-                    await e.Message.RespondAsync("pong!");
-            };
+            client.CreateBot();
 
-            await discord.ConnectAsync();
+            await client.ConnectAsync();
             await Task.Delay(-1);
         }
     }
