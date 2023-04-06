@@ -140,7 +140,7 @@ namespace NekoBot.Commands
 
             var msg = await ctx.Channel.SendMessageAsync(msgBuilder);
 
-            foreach(var emoji in emojiOptions.Values)
+            foreach (var emoji in emojiOptions.Values)
             {
                 await msg.CreateReactionAsync(emoji);
             }
@@ -172,7 +172,7 @@ namespace NekoBot.Commands
             if (member != null && role != null)
             {
                 await member.GrantRoleAsync(role);
-            }   
+            }
         }
     }
 }
