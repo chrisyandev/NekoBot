@@ -1,6 +1,8 @@
-﻿using DSharpPlus.CommandsNext;
+﻿using DSharpPlus;
+using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
+using DSharpPlus.Exceptions;
 using DSharpPlus.Interactivity.Extensions;
 using NekoBot.Extensions;
 using System;
@@ -54,7 +56,7 @@ namespace NekoBot.Commands
 
             ctx.Client.MessageReactionAdded += async (client, e) =>
             {
-                if (e.Message != msg)
+                if (e.Message != msg || e.User.IsBot)
                 {
                     return;
                 }
@@ -80,13 +82,24 @@ namespace NekoBot.Commands
                 }
                 else if (member != null && role != null)
                 {
-                    await member.GrantRoleAsync(role);
+                    try
+                    {
+                        await member.GrantRoleAsync(role);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ex is UnauthorizedException)
+                        {
+                            SendUnAuthMessage(client, e.Channel);
+                        }
+                        Debug.WriteLine($"Exception caught!\n{ex}");
+                    }
                 }
             };
 
             ctx.Client.MessageReactionRemoved += async (client, e) =>
             {
-                if (e.Message != msg)
+                if (e.Message != msg || e.User.IsBot)
                 {
                     return;
                 }
@@ -112,15 +125,40 @@ namespace NekoBot.Commands
                 }
                 else if (member != null && role != null)
                 {
-                    await member.RevokeRoleAsync(role);
+                    try
+                    {
+                        await member.RevokeRoleAsync(role);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (ex is UnauthorizedException)
+                        {
+                            SendUnAuthMessage(client, e.Channel);
+                        }
+                        Debug.WriteLine($"Exception caught!\n{ex}");
+                    }
                 }
             };
+        }
+
+        private static async void SendUnAuthMessage(DiscordClient client, DiscordChannel channel)
+        {
+            try
+            {
+                await client.SendMessageAsync(channel,
+                    "Error: Unauthorized. In the roles list (Server Settings -> Roles) " +
+                    "make sure the bot's role is above the roles it can assign.");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Exception caught!\n{ex}");
+            }
         }
 
         /// <summary>
         /// WIP. Only adds a single role to user who created the command.
         /// </summary>
-        //[Command("singlerole")]
+/*        [Command("singlerole")]
         public async Task SingleRoleCommand(CommandContext ctx)
         {
             Dictionary<string, DiscordEmoji> emojiOptions = new()
@@ -173,6 +211,6 @@ namespace NekoBot.Commands
             {
                 await member.GrantRoleAsync(role);
             }
-        }
+        }*/
     }
 }
