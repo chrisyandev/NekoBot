@@ -12,41 +12,14 @@ namespace NekoBot.Commands
 {
     public class AutoMuteVoiceModule : BaseCommandModule
     {
+        public static List<DiscordChannel> autoMuteChannels = new();
+
         [Command("automutevc"), Aliases("amvc")]
-        public async Task AutoMuteCommand(CommandContext ctx, int numUnMuted)
-        {
-            /*Debug.WriteLine(numUnMuted);
-
-            DiscordChannel voiceChannel = await ctx.Guild.CreateVoiceChannelAsync("TEST (auto-mute)", ctx.Channel.Parent);
-
-            Debug.WriteLine(voiceChannel);
-
-            ctx.Client.VoiceStateUpdated += async (client, e) =>
-            {
-                if (e.Channel != voiceChannel)
-                {
-                    return;
-                }
-
-                if (voiceChannel.Users.Count > numUnMuted)
-                {
-                    e.User.
-                }
-            };*/
-
-        }
-
-        [Command("automutevc")]
         public async Task AutoMuteCommand(CommandContext ctx, params DiscordMember[] membersUnMuted)
         {
-            foreach (DiscordMember mem in membersUnMuted)
-            {
-                Debug.WriteLine(mem);
-            }
-
-            DiscordChannel voiceChannel = await ctx.Guild.CreateVoiceChannelAsync("TEST (auto-mute)", ctx.Channel.Parent);
-
-            Debug.WriteLine(voiceChannel);
+            DiscordChannel voiceChannel = await ctx.Guild.CreateVoiceChannelAsync($"Group {autoMuteChannels.Count} (auto-mute)", ctx.Channel.Parent);
+            autoMuteChannels.RemoveAll(x => x == null);
+            autoMuteChannels.Add(voiceChannel);
 
             ctx.Client.VoiceStateUpdated += async (client, e) =>
             {
@@ -54,23 +27,44 @@ namespace NekoBot.Commands
 
                 if (member != null)
                 {
-                    bool joinedThisChannel = (e.Before == null || e.Before.Channel != voiceChannel)
-                                            && (e.After != null && e.After.Channel == voiceChannel);
-                    bool leftThisChannel = (e.Before != null && e.Before.Channel == voiceChannel)
-                                            && (e.After == null || e.After.Channel != voiceChannel);
+                    bool joinedAnotherChannel = (e.Before == null || e.Before.Channel == null || e.Before.Channel == voiceChannel)
+                                                && (e.After != null && e.After.Channel != null && e.After.Channel != voiceChannel);
+                    bool joinedThisChannel = (e.Before == null || e.Before.Channel == null || e.Before.Channel != voiceChannel)
+                                            && (e.After != null && e.After.Channel != null && e.After.Channel == voiceChannel);
 
-                    if (joinedThisChannel && !membersUnMuted.Contains(member))
+                    if (member.IsMuted && joinedAnotherChannel && !autoMuteChannels.Contains(e.After!.Channel!))
                     {
-                        Debug.WriteLine("joined channel");
-                        await member.SetMuteAsync(true);
-                    }
-                    else if (leftThisChannel)
-                    {
-                        Debug.WriteLine("left channel");
+                        Debug.WriteLine("unmuting member");
                         await member.SetMuteAsync(false);
+                        return;
+                    }
+                    
+                    if (joinedThisChannel)
+                    {
+                        bool canMemberSpeak = membersUnMuted.Contains(member);
+
+                        if (canMemberSpeak)
+                        {
+                            Debug.WriteLine("unmuting member");
+                            await member.SetMuteAsync(false);
+                        }
+                        else
+                        {
+                            Debug.WriteLine("muting member");
+                            await member.SetMuteAsync(true);
+                        }
                     }
                 }
             };
         }
+
+/*        [Command("deletecategorychannels")]
+        public async Task DeleteCategoryChannelsCommand(CommandContext ctx)
+        {
+            foreach (var c in ctx.Channel.Parent.Children)
+            {
+                await c.DeleteAsync();
+            }
+        }*/
     }
 }
