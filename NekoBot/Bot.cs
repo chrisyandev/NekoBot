@@ -28,7 +28,7 @@ namespace NekoBot
             {
                 Token = secrets["TOKEN"],
                 TokenType = TokenType.Bot,
-                Intents = DiscordIntents.AllUnprivileged | DiscordIntents.MessageContents
+                Intents = DiscordIntents.All
             };
             Client = new DiscordClient(discordConfig);
 
@@ -45,6 +45,7 @@ namespace NekoBot
             CommandsNext = Client.UseCommandsNext(commandsConfig);
             CommandsNext.RegisterCommands<BasicsModule>();
             CommandsNext.RegisterCommands<ReactionRoleModule>();
+            CommandsNext.RegisterCommands<AutoMuteVoiceModule>();
 
             await Client.ConnectAsync();
             await Task.Delay(-1);
