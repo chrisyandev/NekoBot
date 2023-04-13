@@ -5,6 +5,7 @@ using DSharpPlus.Entities;
 using DSharpPlus.Exceptions;
 using DSharpPlus.Interactivity.Extensions;
 using NekoBot.Extensions;
+using NekoBot.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -90,7 +91,7 @@ namespace NekoBot.Commands
                     {
                         if (ex is UnauthorizedException)
                         {
-                            SendUnAuthMessage(client, e.Channel);
+                            ErrorMessages.SendUnAuthMessage(client, e.Channel);
                         }
                         Debug.WriteLine($"Exception caught!\n{ex}");
                     }
@@ -133,26 +134,12 @@ namespace NekoBot.Commands
                     {
                         if (ex is UnauthorizedException)
                         {
-                            SendUnAuthMessage(client, e.Channel);
+                            ErrorMessages.SendUnAuthMessage(client, e.Channel);
                         }
                         Debug.WriteLine($"Exception caught!\n{ex}");
                     }
                 }
             };
-        }
-
-        private static async void SendUnAuthMessage(DiscordClient client, DiscordChannel channel)
-        {
-            try
-            {
-                await client.SendMessageAsync(channel,
-                    "Error: Unauthorized. In the roles list (Server Settings -> Roles) " +
-                    "make sure the bot's role is above the roles it can assign.");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Exception caught!\n{ex}");
-            }
         }
 
         /// <summary>
