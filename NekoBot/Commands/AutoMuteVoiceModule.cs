@@ -16,16 +16,63 @@ namespace NekoBot.Commands
 {
     public class AutoMuteVoiceModule : BaseCommandModule
     {
-        public static List<DiscordChannel> autoMuteChannels = new();
+        private static List<DiscordChannel> autoMuteChannels = new();
+        private static bool isAutoMuteSetup = false;
 
         [Command("automutevc"), Aliases("amvc")]
         public async Task AutoMuteCommand(CommandContext ctx, params DiscordMember[] membersUnMuted)
         {
+            // Check if role exists
+            var voiceMutedRole = ctx.Guild.Roles.Values.FirstOrDefault(role => role.Name.ToLower() == "voicemuted");
+            if (voiceMutedRole == null)
+            {
+                ErrorMessages.SendRoleNotExistMessage(ctx.Client, ctx.Channel, "VoiceMuted");
+                return;
+            }
+
+            // Create new voice channel
             DiscordChannel voiceChannel = await ctx.Guild.CreateVoiceChannelAsync($"Team {ctx.User.Username} (auto-mute)", ctx.Channel.Parent);
             autoMuteChannels.Add(voiceChannel);
 
+            // Attach event handler once and only once
+            if (!isAutoMuteSetup)
+            {
+                ctx.Client.VoiceStateUpdated += JoinedAnyChannel;
+                isAutoMuteSetup = true;
+            }
+            
             ctx.Client.VoiceStateUpdated += Client_VoiceStateUpdated;
             ctx.Client.ChannelDeleted += Client_ChannelDeleted;
+
+            // Unmutes members that join any VC that is not auto-mute since
+            // currently there is no way to preview members disconnecting from
+            // VC, and members cannot be unmuted if they are not in a VC.
+            // Only 1 of this event handler should be subscribed.
+            async Task JoinedAnyChannel(DiscordClient client, VoiceStateUpdateEventArgs e)
+            {
+                var member = e.User as DiscordMember;
+
+                if (member != null)
+                {
+                    bool joinedAChannel = (e.Before == null || e.Before.Channel == null) && (e.After != null && e.After.Channel != null);
+
+                    // Unmute if they join a channel without auto-mute
+                    if (joinedAChannel)
+                    {
+                        Debug.WriteLine("joined a channel");
+                        if (autoMuteChannels.Contains(e.After!.Channel!))
+                        {
+                            Debug.WriteLine("channel is auto-mute");
+                        }
+                        else
+                        {
+                            Debug.WriteLine("channel is not auto-mute");
+                            Debug.WriteLine("removing server mute");
+                            await member.SetMuteAsync(false); // removing role while member is in VC will not automatically unmute them
+                        }
+                    }
+                }
+            }
 
             async Task Client_VoiceStateUpdated(DiscordClient client, VoiceStateUpdateEventArgs e)
             {
@@ -33,7 +80,7 @@ namespace NekoBot.Commands
 
                 if (member != null)
                 {
-                    bool joinedAnotherChannel = (e.Before == null || e.Before.Channel == null || e.Before.Channel == voiceChannel)
+                    bool joinedAnotherChannel = (e.Before != null && e.Before.Channel != null && e.Before.Channel == voiceChannel)
                                                 && (e.After != null && e.After.Channel != null && e.After.Channel != voiceChannel);
                     bool disconnected = (e.Before != null && e.Before.Channel != null && e.Before.Channel == voiceChannel)
                                         && (e.After == null || e.After.Channel == null);
@@ -41,15 +88,8 @@ namespace NekoBot.Commands
                                             && (e.After != null && e.After.Channel != null && e.After.Channel == voiceChannel);
                     bool leftThisChannel = (e.Before != null && e.Before.Channel != null && e.Before.Channel == voiceChannel)
                                             && (e.After == null || e.After.Channel == null || e.After.Channel != voiceChannel);
-                    var voiceMutedRole = ctx.Guild.Roles.Values.FirstOrDefault(role => role.Name.ToLower() == "voicemuted");
 
-                    if (voiceMutedRole == null)
-                    {
-                        ErrorMessages.SendRoleNotExistMessage(client, e.Channel, "VoiceMuted");
-                        return;
-                    }
-
-                    // Unmute if they join a channel without auto-mute
+                    // Unmute if they join another channel from this channel, and it has no auto-mute
                     if (joinedAnotherChannel && !autoMuteChannels.Contains(e.After!.Channel!))
                     {
                         Debug.WriteLine("joined channel without auto-mute");
@@ -67,7 +107,7 @@ namespace NekoBot.Commands
                         Debug.WriteLine("disconnected");
                         if (member.Roles.Contains(voiceMutedRole))
                         {
-                            Debug.WriteLine("unmuting member");
+                            Debug.WriteLine("removing VoiceMuted role");
                             await member.RevokeRoleAsync(voiceMutedRole);
                         }
                     }
