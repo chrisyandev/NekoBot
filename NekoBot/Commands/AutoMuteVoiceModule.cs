@@ -138,7 +138,10 @@ namespace NekoBot.Commands
                             }
                             else
                             {
-                                if (!member.IsMuted)
+                                var adminRole = ctx.Guild.Roles.Values.FirstOrDefault(role => role.Name.ToLower() == "admin");
+                                bool isMemberAdmin = adminRole != null && member.Roles.Contains(adminRole);
+
+                                if (!member.IsMuted && !isMemberAdmin)
                                 {
                                     Debug.WriteLine("muting member");
                                     await member.SetMuteAsync(true);
@@ -301,7 +304,10 @@ namespace NekoBot.Commands
                             }
                             else
                             {
-                                if (!member.IsMuted)
+                                var adminRole = ctx.Guild.Roles.Values.FirstOrDefault(role => role.Name.ToLower() == "admin");
+                                bool isMemberAdmin = adminRole != null && member.Roles.Contains(adminRole);
+
+                                if (!member.IsMuted && !isMemberAdmin)
                                 {
                                     Debug.WriteLine("muting member");
                                     await member.SetMuteAsync(true);
