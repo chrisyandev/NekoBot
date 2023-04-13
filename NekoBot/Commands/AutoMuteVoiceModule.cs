@@ -31,7 +31,7 @@ namespace NekoBot.Commands
             }
 
             // Create new voice channel
-            DiscordChannel voiceChannel = await ctx.Guild.CreateVoiceChannelAsync($"Team {ctx.User.Username} (auto-mute)", ctx.Channel.Parent);
+            DiscordChannel voiceChannel = await ctx.Guild.CreateVoiceChannelAsync($"Team {ctx.Member?.DisplayName} (auto-mute)", ctx.Channel.Parent);
             autoMuteChannels.Add(voiceChannel);
 
             // Attach event handler once and only once
@@ -41,6 +41,7 @@ namespace NekoBot.Commands
                 isAutoMuteSetup = true;
             }
             
+            // Attach event handlers
             ctx.Client.VoiceStateUpdated += Client_VoiceStateUpdated;
             ctx.Client.ChannelDeleted += Client_ChannelDeleted;
 
@@ -50,121 +51,143 @@ namespace NekoBot.Commands
             // Only 1 of this event handler should be subscribed.
             async Task JoinedAnyChannel(DiscordClient client, VoiceStateUpdateEventArgs e)
             {
-                var member = e.User as DiscordMember;
-
-                if (member != null)
+                try
                 {
-                    bool joinedAChannel = (e.Before == null || e.Before.Channel == null) && (e.After != null && e.After.Channel != null);
+                    var member = e.User as DiscordMember;
 
-                    // Unmute if they join a channel without auto-mute
-                    if (joinedAChannel)
+                    if (member != null)
                     {
-                        Debug.WriteLine("joined a channel");
-                        if (autoMuteChannels.Contains(e.After!.Channel!))
+                        bool joinedAChannel = (e.Before == null || e.Before.Channel == null) && (e.After != null && e.After.Channel != null);
+
+                        // Unmute if they join a channel without auto-mute
+                        if (joinedAChannel)
                         {
-                            Debug.WriteLine("channel is auto-mute");
-                        }
-                        else
-                        {
-                            Debug.WriteLine("channel is not auto-mute");
-                            Debug.WriteLine("removing server mute");
-                            await member.SetMuteAsync(false); // removing role while member is in VC will not automatically unmute them
+                            Debug.WriteLine("joined a channel");
+                            if (autoMuteChannels.Contains(e.After!.Channel!))
+                            {
+                                Debug.WriteLine("channel is auto-mute");
+                            }
+                            else
+                            {
+                                Debug.WriteLine("channel is not auto-mute");
+                                Debug.WriteLine("removing server mute");
+                                await member.SetMuteAsync(false); // removing role while member is in VC will not automatically unmute them
+                            }
                         }
                     }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Exception caught!\n{ex}");
                 }
             }
 
             async Task Client_VoiceStateUpdated(DiscordClient client, VoiceStateUpdateEventArgs e)
             {
-                var member = e.User as DiscordMember;
-
-                if (member != null)
+                try
                 {
-                    bool joinedAnotherChannel = (e.Before != null && e.Before.Channel != null && e.Before.Channel == voiceChannel)
-                                                && (e.After != null && e.After.Channel != null && e.After.Channel != voiceChannel);
-                    bool disconnected = (e.Before != null && e.Before.Channel != null && e.Before.Channel == voiceChannel)
-                                        && (e.After == null || e.After.Channel == null);
-                    bool joinedThisChannel = (e.Before == null || e.Before.Channel == null || e.Before.Channel != voiceChannel)
-                                            && (e.After != null && e.After.Channel != null && e.After.Channel == voiceChannel);
-                    bool leftThisChannel = (e.Before != null && e.Before.Channel != null && e.Before.Channel == voiceChannel)
-                                            && (e.After == null || e.After.Channel == null || e.After.Channel != voiceChannel);
+                    var member = e.User as DiscordMember;
 
-                    // Unmute if they join another channel from this channel, and it has no auto-mute
-                    if (joinedAnotherChannel && !autoMuteChannels.Contains(e.After!.Channel!))
+                    if (member != null)
                     {
-                        Debug.WriteLine("joined channel without auto-mute");
-                        if (member.Roles.Contains(voiceMutedRole))
-                        {
-                            Debug.WriteLine("unmuting member");
-                            await member.RevokeRoleAsync(voiceMutedRole);
-                            await member.SetMuteAsync(false); // removing role while member is in VC will not automatically unmute them
-                        }
-                    }
+                        bool joinedAnotherChannel = (e.Before != null && e.Before.Channel != null && e.Before.Channel == voiceChannel)
+                                                    && (e.After != null && e.After.Channel != null && e.After.Channel != voiceChannel);
+                        bool disconnected = (e.Before != null && e.Before.Channel != null && e.Before.Channel == voiceChannel)
+                                            && (e.After == null || e.After.Channel == null);
+                        bool joinedThisChannel = (e.Before == null || e.Before.Channel == null || e.Before.Channel != voiceChannel)
+                                                && (e.After != null && e.After.Channel != null && e.After.Channel == voiceChannel);
+                        bool leftThisChannel = (e.Before != null && e.Before.Channel != null && e.Before.Channel == voiceChannel)
+                                                && (e.After == null || e.After.Channel == null || e.After.Channel != voiceChannel);
 
-                    // Unmute if they click Disconnect
-                    if (disconnected)
-                    {
-                        Debug.WriteLine("disconnected");
-                        if (member.Roles.Contains(voiceMutedRole))
+                        // Unmute if they join another channel from this channel, and it has no auto-mute
+                        if (joinedAnotherChannel && !autoMuteChannels.Contains(e.After!.Channel!))
                         {
-                            Debug.WriteLine("removing VoiceMuted role");
-                            await member.RevokeRoleAsync(voiceMutedRole);
-                        }
-                    }
-
-                    // Delete this channel if last person leaves
-                    if (leftThisChannel)
-                    {
-                        Debug.WriteLine("left this channel");
-                        if (voiceChannel.Users.Count == 0)
-                        {
-                            try
-                            {
-                                await voiceChannel.DeleteAsync();
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.WriteLine($"Exception caught!\n{ex}");
-                            }
-                        }
-                    }
-
-                    // Mute or unmute when they join this auto-mute channel
-                    if (joinedThisChannel)
-                    {
-                        Debug.WriteLine("joined this channel");
-                        bool canMemberSpeak = membersUnMuted.Contains(member);
-
-                        if (canMemberSpeak)
-                        {
-                            if (member.Roles.Contains(voiceMutedRole) || member.IsMuted)
+                            Debug.WriteLine("joined channel without auto-mute");
+                            if (member.Roles.Contains(voiceMutedRole))
                             {
                                 Debug.WriteLine("unmuting member");
                                 await member.RevokeRoleAsync(voiceMutedRole);
                                 await member.SetMuteAsync(false); // removing role while member is in VC will not automatically unmute them
                             }
                         }
-                        else
+
+                        // Unmute if they click Disconnect
+                        if (disconnected)
                         {
-                            if (!member.Roles.Contains(voiceMutedRole) || !member.IsMuted)
+                            Debug.WriteLine("disconnected");
+                            if (member.Roles.Contains(voiceMutedRole))
                             {
-                                Debug.WriteLine("muting member");
-                                await member.GrantRoleAsync(voiceMutedRole);
-                                await member.SetMuteAsync(true); // assigning role while member is in VC will not automatically mute them
+                                Debug.WriteLine("removing VoiceMuted role");
+                                await member.RevokeRoleAsync(voiceMutedRole);
+                            }
+                        }
+
+                        // Delete this channel if last person leaves
+                        if (leftThisChannel)
+                        {
+                            Debug.WriteLine("left this channel");
+                            if (voiceChannel.Users.Count == 0)
+                            {
+                                try
+                                {
+                                    await voiceChannel.DeleteAsync();
+                                }
+                                catch (Exception)
+                                {
+                                    Debug.WriteLine("Couldn't delete VC");
+                                    throw;
+                                }
+                            }
+                        }
+
+                        // Mute or unmute when they join this auto-mute channel
+                        if (joinedThisChannel)
+                        {
+                            Debug.WriteLine("joined this channel");
+                            bool canMemberSpeak = membersUnMuted.Contains(member);
+
+                            if (canMemberSpeak)
+                            {
+                                if (member.Roles.Contains(voiceMutedRole) || member.IsMuted)
+                                {
+                                    Debug.WriteLine("unmuting member");
+                                    await member.RevokeRoleAsync(voiceMutedRole);
+                                    await member.SetMuteAsync(false); // removing role while member is in VC will not automatically unmute them
+                                }
+                            }
+                            else
+                            {
+                                if (!member.Roles.Contains(voiceMutedRole) || !member.IsMuted)
+                                {
+                                    Debug.WriteLine("muting member");
+                                    await member.GrantRoleAsync(voiceMutedRole);
+                                    await member.SetMuteAsync(true); // assigning role while member is in VC will not automatically mute them
+                                }
                             }
                         }
                     }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Exception caught!\n{ex}");
                 }
             }
 
             async Task Client_ChannelDeleted(DiscordClient client, ChannelDeleteEventArgs e)
             {
-                if (e.Channel == voiceChannel)
+                try
                 {
-                    Debug.WriteLine($"Channel deleted: {e.Channel}");
-                    autoMuteChannels.Remove(e.Channel);
-                    client.VoiceStateUpdated -= Client_VoiceStateUpdated;
-                    client.ChannelDeleted -= Client_ChannelDeleted;
+                    if (e.Channel == voiceChannel)
+                    {
+                        Debug.WriteLine($"Channel deleted: {e.Channel}");
+                        autoMuteChannels.Remove(e.Channel);
+                        client.VoiceStateUpdated -= Client_VoiceStateUpdated;
+                        client.ChannelDeleted -= Client_ChannelDeleted;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Exception caught!\n{ex}");
                 }
             }
         }
