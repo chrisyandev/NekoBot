@@ -1,4 +1,5 @@
 ﻿using DSharpPlus;
+using DSharpPlus.EventArgs;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
@@ -55,7 +56,11 @@ namespace NekoBot.Commands
                 await msg.CreateReactionAsync(emoji);
             }
 
-            ctx.Client.MessageReactionAdded += async (client, e) =>
+            ctx.Client.MessageReactionAdded += Client_MessageReactionAdded;
+            ctx.Client.MessageReactionRemoved += Client_MessageReactionRemoved;
+            ctx.Client.MessageDeleted += Client_MessageDeleted;
+
+            async Task Client_MessageReactionAdded(DiscordClient client, MessageReactionAddEventArgs e)
             {
                 if (e.Message != msg || e.User.IsBot)
                 {
@@ -96,9 +101,9 @@ namespace NekoBot.Commands
                         Debug.WriteLine($"Exception caught!\n{ex}");
                     }
                 }
-            };
+            }
 
-            ctx.Client.MessageReactionRemoved += async (client, e) =>
+            async Task Client_MessageReactionRemoved(DiscordClient client, MessageReactionRemoveEventArgs e)
             {
                 if (e.Message != msg || e.User.IsBot)
                 {
@@ -139,65 +144,78 @@ namespace NekoBot.Commands
                         Debug.WriteLine($"Exception caught!\n{ex}");
                     }
                 }
-            };
+            }
+
+            Task Client_MessageDeleted(DiscordClient client, MessageDeleteEventArgs e)
+            {
+                if (e.Message == msg)
+                {
+                    Debug.WriteLine($"Message deleted: {e.Message}");
+                    client.MessageReactionAdded -= Client_MessageReactionAdded;
+                    client.MessageReactionRemoved -= Client_MessageReactionRemoved;
+                    client.MessageDeleted -= Client_MessageDeleted;
+                }
+
+                return Task.CompletedTask;
+            }
         }
 
         /// <summary>
         /// WIP. Only adds a single role to user who created the command.
         /// </summary>
-/*        [Command("singlerole")]
-        public async Task SingleRoleCommand(CommandContext ctx)
-        {
-            Dictionary<string, DiscordEmoji> emojiOptions = new()
-            {
-                [DpsRoleName] = DiscordEmoji.FromName(ctx.Client, ":crossed_swords:"),
-                [HealerRoleName] = DiscordEmoji.FromName(ctx.Client, ":green_square:"),
-                [TankRoleName] = DiscordEmoji.FromName(ctx.Client, ":shield:")
-            };
+        /*        [Command("singlerole")]
+                public async Task SingleRoleCommand(CommandContext ctx)
+                {
+                    Dictionary<string, DiscordEmoji> emojiOptions = new()
+                    {
+                        [DpsRoleName] = DiscordEmoji.FromName(ctx.Client, ":crossed_swords:"),
+                        [HealerRoleName] = DiscordEmoji.FromName(ctx.Client, ":green_square:"),
+                        [TankRoleName] = DiscordEmoji.FromName(ctx.Client, ":shield:")
+                    };
 
-            var msgBuilder = new DiscordMessageBuilder();
-            var embed = new DiscordEmbedBuilder()
-                .WithColor(DiscordColor.Orange)
-                .WithTitle("Role Selection")
-                .WithDescription("Select your role to unlock channels")
-                .WithThumbnail(ctx.Client.CurrentUser.AvatarUrl);
-            msgBuilder.AddEmbed(embed);
+                    var msgBuilder = new DiscordMessageBuilder();
+                    var embed = new DiscordEmbedBuilder()
+                        .WithColor(DiscordColor.Orange)
+                        .WithTitle("Role Selection")
+                        .WithDescription("Select your role to unlock channels")
+                        .WithThumbnail(ctx.Client.CurrentUser.AvatarUrl);
+                    msgBuilder.AddEmbed(embed);
 
-            var msg = await ctx.Channel.SendMessageAsync(msgBuilder);
+                    var msg = await ctx.Channel.SendMessageAsync(msgBuilder);
 
-            foreach (var emoji in emojiOptions.Values)
-            {
-                await msg.CreateReactionAsync(emoji);
-            }
+                    foreach (var emoji in emojiOptions.Values)
+                    {
+                        await msg.CreateReactionAsync(emoji);
+                    }
 
-            var interactivity = ctx.Client.GetInteractivity();
+                    var interactivity = ctx.Client.GetInteractivity();
 
-            var result = await interactivity.WaitForReactionAsync(e =>
-                e.Message == msg
-                && e.User == ctx.User
-                && emojiOptions.Values.Contains(e.Emoji));
+                    var result = await interactivity.WaitForReactionAsync(e =>
+                        e.Message == msg
+                        && e.User == ctx.User
+                        && emojiOptions.Values.Contains(e.Emoji));
 
-            var member = ctx.Member;
-            DiscordRole? role = null;
-            var allRoles = ctx.Guild.Roles.Values;
+                    var member = ctx.Member;
+                    DiscordRole? role = null;
+                    var allRoles = ctx.Guild.Roles.Values;
 
-            if (result.Result.Emoji == emojiOptions[DpsRoleName])
-            {
-                role = allRoles.FirstOrDefault(role => role.Name.ToLower() == DpsRoleName);
-            }
-            else if (result.Result.Emoji == emojiOptions[TankRoleName])
-            {
-                role = allRoles.FirstOrDefault(role => role.Name.ToLower() == TankRoleName);
-            }
-            else if (result.Result.Emoji == emojiOptions[HealerRoleName])
-            {
-                role = allRoles.FirstOrDefault(role => role.Name.ToLower() == HealerRoleName);
-            }
+                    if (result.Result.Emoji == emojiOptions[DpsRoleName])
+                    {
+                        role = allRoles.FirstOrDefault(role => role.Name.ToLower() == DpsRoleName);
+                    }
+                    else if (result.Result.Emoji == emojiOptions[TankRoleName])
+                    {
+                        role = allRoles.FirstOrDefault(role => role.Name.ToLower() == TankRoleName);
+                    }
+                    else if (result.Result.Emoji == emojiOptions[HealerRoleName])
+                    {
+                        role = allRoles.FirstOrDefault(role => role.Name.ToLower() == HealerRoleName);
+                    }
 
-            if (member != null && role != null)
-            {
-                await member.GrantRoleAsync(role);
-            }
-        }*/
+                    if (member != null && role != null)
+                    {
+                        await member.GrantRoleAsync(role);
+                    }
+                }*/
     }
 }

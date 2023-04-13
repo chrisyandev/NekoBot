@@ -173,22 +173,17 @@ namespace NekoBot.Commands
                 }
             }
 
-            async Task Client_ChannelDeleted(DiscordClient client, ChannelDeleteEventArgs e)
+            Task Client_ChannelDeleted(DiscordClient client, ChannelDeleteEventArgs e)
             {
-                try
+                if (e.Channel == voiceChannel)
                 {
-                    if (e.Channel == voiceChannel)
-                    {
-                        Debug.WriteLine($"Channel deleted: {e.Channel}");
-                        autoMuteChannels.Remove(e.Channel);
-                        client.VoiceStateUpdated -= Client_VoiceStateUpdated;
-                        client.ChannelDeleted -= Client_ChannelDeleted;
-                    }
+                    Debug.WriteLine($"Channel deleted: {e.Channel}");
+                    autoMuteChannels.Remove(e.Channel);
+                    client.VoiceStateUpdated -= Client_VoiceStateUpdated;
+                    client.ChannelDeleted -= Client_ChannelDeleted;
                 }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Exception caught!\n{ex}");
-                }
+
+                return Task.CompletedTask;
             }
         }
 
