@@ -4,7 +4,9 @@ using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
+using System.Diagnostics.Tracing;
 using System.Linq;
 using System.Text;
 using System.Threading.Channels;
@@ -17,27 +19,33 @@ namespace NekoBot.Commands
         [Command("createinvite")]
         public async Task CreateInvite1HourCommand(CommandContext ctx)
         {
+            const string TargetChannelName = "role-selection";
+            const string LogChannelName = "member-log";
+
             try
             {
                 DiscordInvite? invite = null;
 
-                foreach (KeyValuePair<ulong, DiscordChannel> channels in ctx.Guild.Channels)
+                var targetChannel = ctx.Guild.Channels.Values.FirstOrDefault(channel => channel.Name.ToLower().Contains(TargetChannelName));
+                if (targetChannel != null)
                 {
-                    if (channels.Value.Name.ToLower().StartsWith("role-selection"))
-                    {
-                        Debug.WriteLine("creating invite");
-                        invite = await channels.Value.CreateInviteAsync(3600);
-                        continue;
-                    }
+                    Console.WriteLine("creating invite");
+                    invite = await targetChannel.CreateInviteAsync(600, 1, false, true, $"The !createinvite command was used by {ctx.User}");
                 }
 
                 if (invite != null)
                 {
-                    await ctx.Channel.SendMessageAsync($"Link expires after 1 hour: {invite}");
+                    await ctx.Channel.SendMessageAsync($"Link expires after 10 minutes (one time use): {invite}");
                 }
                 else
                 {
-                    await ctx.Channel.SendMessageAsync($"Failed to create invite.");
+                    await ctx.Channel.SendMessageAsync($"Failed to create invite. Make sure channel #{TargetChannelName} exists.");
+                }
+                
+                var logChannel = ctx.Guild.Channels.Values.FirstOrDefault(channel => channel.Name.ToLower().Contains(LogChannelName));
+                if (logChannel != null)
+                {
+                    await logChannel.SendMessageAsync($"The !createinvite command was used by {ctx.User}");
                 }
             }
             catch (Exception ex)
