@@ -20,7 +20,7 @@ namespace NekoBot.Commands
         private static bool isAutoMuteSetup = false;
 
         /// <summary>
-        /// Creates voice channel that mutes everyone except members that are pinged.
+        /// Creates a voice channel that mutes everyone except members that are pinged and the member that invoked this command.
         /// </summary>
         [Command("automutevc"), Aliases("amvc")]
         public async Task AutoMuteCommand(CommandContext ctx, params DiscordMember[] membersUnmuted)
@@ -140,7 +140,10 @@ namespace NekoBot.Commands
                         if (joinedThisChannel)
                         {
                             Debug.WriteLine("joined this channel");
-                            bool canMemberSpeak = membersUnmuted.Contains(member);
+
+                            var adminRole = ctx.Guild.Roles.Values.FirstOrDefault(role => role.Name.ToLower() == "admin");
+                            bool isMemberAdmin = adminRole != null && member.Roles.Contains(adminRole);
+                            bool canMemberSpeak = membersUnmuted.Contains(member) || isMemberAdmin || member == ctx.Member;
 
                             if (canMemberSpeak)
                             {
@@ -152,10 +155,7 @@ namespace NekoBot.Commands
                             }
                             else
                             {
-                                var adminRole = ctx.Guild.Roles.Values.FirstOrDefault(role => role.Name.ToLower() == "admin");
-                                bool isMemberAdmin = adminRole != null && member.Roles.Contains(adminRole);
-
-                                if (!member.IsMuted && !isMemberAdmin)
+                                if (!member.IsMuted)
                                 {
                                     Debug.WriteLine("muting member");
                                     await member.SetMuteAsync(true);
@@ -185,7 +185,7 @@ namespace NekoBot.Commands
         }
 
         /// <summary>
-        /// Creates voice channel that mutes everyone except first # of members who join.
+        /// Creates a voice channel that mutes everyone except the first members who join up to the unmuted limit.
         /// </summary>
         [Command("automutevc")]
         public async Task AutoMuteCommand(CommandContext ctx, int numUnmuted)
@@ -311,29 +311,30 @@ namespace NekoBot.Commands
                         if (joinedThisChannel)
                         {
                             Debug.WriteLine("joined this channel");
-                            bool canMemberSpeak = membersUnmuted.Contains(member);
-                            bool isBelowUnmutedLimit = voiceChannel.Users.Count <= numUnmuted;
 
-                            // Admins should never be muted, and they should not count in # of unmuted members
-                            if (canMemberSpeak || isBelowUnmutedLimit)
+                            var adminRole = ctx.Guild.Roles.Values.FirstOrDefault(role => role.Name.ToLower() == "admin");
+                            bool isMemberAdmin = adminRole != null && member.Roles.Contains(adminRole);
+
+                            // If member has not been added to list, add them if unmuted limit has not been reached
+                            // Admins should never be muted, and they should not be in list of unmuted members
+                            if (membersUnmuted.Count < numUnmuted && !membersUnmuted.Contains(member) && !isMemberAdmin)
+                            {
+                                membersUnmuted.Add(member);
+                            }
+
+                            bool canMemberSpeak = membersUnmuted.Contains(member) || isMemberAdmin;
+                            
+                            if (canMemberSpeak)
                             {
                                 if (member.IsMuted)
                                 {
                                     Debug.WriteLine("unmuting member");
                                     await member.SetMuteAsync(false);
                                 }
-                                if (!canMemberSpeak)
-                                {
-                                    membersUnmuted.Add(member);
-                                    Debug.WriteLine($"members unmuted: {membersUnmuted.Count}");
-                                }
                             }
                             else
                             {
-                                var adminRole = ctx.Guild.Roles.Values.FirstOrDefault(role => role.Name.ToLower() == "admin");
-                                bool isMemberAdmin = adminRole != null && member.Roles.Contains(adminRole);
-
-                                if (!member.IsMuted && !isMemberAdmin)
+                                if (!member.IsMuted)
                                 {
                                     Debug.WriteLine("muting member");
                                     await member.SetMuteAsync(true);
