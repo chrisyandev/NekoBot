@@ -98,7 +98,7 @@ namespace NekoBot.Commands
                         {
                             ErrorMessages.SendUnAuthMessage(client, e.Channel);
                         }
-                        Debug.WriteLine($"Exception caught!\n{ex}");
+                        Console.WriteLine($"Exception caught!\n{ex}");
                     }
                 }
             }
@@ -141,7 +141,7 @@ namespace NekoBot.Commands
                         {
                             ErrorMessages.SendUnAuthMessage(client, e.Channel);
                         }
-                        Debug.WriteLine($"Exception caught!\n{ex}");
+                        Console.WriteLine($"Exception caught!\n{ex}");
                     }
                 }
             }

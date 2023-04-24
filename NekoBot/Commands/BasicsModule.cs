@@ -50,7 +50,7 @@ namespace NekoBot.Commands
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Exception caught for !invite command\n{ex}");
+                Console.WriteLine($"Exception caught for !invite command\n{ex}");
             }
         }
 

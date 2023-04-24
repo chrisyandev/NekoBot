@@ -21,7 +21,7 @@ namespace NekoBot.Utilities
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Exception caught!\n{ex}");
+                Console.WriteLine($"Exception caught!\n{ex}");
             }
         }
 
@@ -35,7 +35,7 @@ namespace NekoBot.Utilities
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Exception caught!\n{ex}");
+                Console.WriteLine($"Exception caught!\n{ex}");
             }
         }
     }

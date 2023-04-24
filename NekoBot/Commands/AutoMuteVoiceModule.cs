@@ -19,23 +19,37 @@ namespace NekoBot.Commands
         private static List<DiscordChannel> autoMuteChannels = new();
         private static bool isAutoMuteSetup = false;
 
+        /// <summary>
+        /// Creates voice channel that mutes everyone except members that are pinged.
+        /// </summary>
         [Command("automutevc"), Aliases("amvc")]
         public async Task AutoMuteCommand(CommandContext ctx, params DiscordMember[] membersUnmuted)
         {
-            // Create new voice channel
-            DiscordChannel voiceChannel = await ctx.Guild.CreateVoiceChannelAsync($"Team {ctx.Member?.DisplayName} (auto-mute)", ctx.Channel.Parent);
-            autoMuteChannels.Add(voiceChannel);
+            DiscordChannel? voiceChannel = null;
 
-            // Attach event handler once and only once
-            if (!isAutoMuteSetup)
+            try
             {
-                ctx.Client.VoiceStateUpdated += JoinedAnyChannel;
-                isAutoMuteSetup = true;
+                Console.WriteLine("creating voice channel");
+
+                // Create new voice channel
+                voiceChannel = await ctx.Guild.CreateVoiceChannelAsync($"Team {ctx.Member?.DisplayName} (auto-mute)", ctx.Channel.Parent);
+                autoMuteChannels.Add(voiceChannel);
+
+                // Attach event handler once and only once
+                if (!isAutoMuteSetup)
+                {
+                    ctx.Client.VoiceStateUpdated += JoinedAnyChannel;
+                    isAutoMuteSetup = true;
+                }
+
+                // Attach event handlers
+                ctx.Client.VoiceStateUpdated += Client_VoiceStateUpdated;
+                ctx.Client.ChannelDeleted += Client_ChannelDeleted;
             }
-            
-            // Attach event handlers
-            ctx.Client.VoiceStateUpdated += Client_VoiceStateUpdated;
-            ctx.Client.ChannelDeleted += Client_ChannelDeleted;
+            catch (Exception ex)
+            {
+                Console.WriteLine($"*Exception caught while trying to create and setup a new voice channel*\n{ex}");
+            }
 
             // Unmutes members that join any VC that is not auto-mute since
             // currently there is no way to preview members disconnecting from
@@ -70,7 +84,7 @@ namespace NekoBot.Commands
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Exception caught!\n{ex}");
+                    Console.WriteLine($"*Exception caught while executing JoinedAnyChannel()*\n{ex}");
                 }
             }
 
@@ -152,7 +166,7 @@ namespace NekoBot.Commands
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Exception caught!\n{ex}");
+                    Console.WriteLine($"*Exception caught while executing Client_VoiceStateUpdated()*\n{ex}");
                 }
             }
 
@@ -170,7 +184,9 @@ namespace NekoBot.Commands
             }
         }
 
-
+        /// <summary>
+        /// Creates voice channel that mutes everyone except first # of members who join.
+        /// </summary>
         [Command("automutevc")]
         public async Task AutoMuteCommand(CommandContext ctx, int numUnmuted)
         {
@@ -179,23 +195,32 @@ namespace NekoBot.Commands
                 return;
             }
 
-            // First members to join while under unmuted limit
-            List<DiscordMember> membersUnmuted = new();
+            DiscordChannel? voiceChannel = null;
+            List<DiscordMember> membersUnmuted = new(); // First members to join while under unmuted limit
 
-            // Create new voice channel
-            DiscordChannel voiceChannel = await ctx.Guild.CreateVoiceChannelAsync($"Team {ctx.Member?.DisplayName} (auto-mute)", ctx.Channel.Parent);
-            autoMuteChannels.Add(voiceChannel);
-
-            // Attach event handler once and only once
-            if (!isAutoMuteSetup)
+            try
             {
-                ctx.Client.VoiceStateUpdated += JoinedAnyChannel;
-                isAutoMuteSetup = true;
-            }
+                Console.WriteLine("creating voice channel");
 
-            // Attach event handlers
-            ctx.Client.VoiceStateUpdated += Client_VoiceStateUpdated;
-            ctx.Client.ChannelDeleted += Client_ChannelDeleted;
+                // Create new voice channel
+                voiceChannel = await ctx.Guild.CreateVoiceChannelAsync($"Team {ctx.Member?.DisplayName} (auto-mute)", ctx.Channel.Parent);
+                autoMuteChannels.Add(voiceChannel);
+
+                // Attach event handler once and only once
+                if (!isAutoMuteSetup)
+                {
+                    ctx.Client.VoiceStateUpdated += JoinedAnyChannel;
+                    isAutoMuteSetup = true;
+                }
+
+                // Attach event handlers
+                ctx.Client.VoiceStateUpdated += Client_VoiceStateUpdated;
+                ctx.Client.ChannelDeleted += Client_ChannelDeleted;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"*Exception caught while trying to create and setup a new voice channel*\n{ex}");
+            }
 
             // Unmutes members that join any VC that is not auto-mute since
             // currently there is no way to preview members disconnecting from
@@ -230,7 +255,7 @@ namespace NekoBot.Commands
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Exception caught!\n{ex}");
+                    Console.WriteLine($"*Exception caught while executing JoinedAnyChannel()*\n{ex}");
                 }
             }
 
@@ -289,6 +314,7 @@ namespace NekoBot.Commands
                             bool canMemberSpeak = membersUnmuted.Contains(member);
                             bool isBelowUnmutedLimit = voiceChannel.Users.Count <= numUnmuted;
 
+                            // Admins should never be muted, and they should not count in # of unmuted members
                             if (canMemberSpeak || isBelowUnmutedLimit)
                             {
                                 if (member.IsMuted)
@@ -318,7 +344,7 @@ namespace NekoBot.Commands
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Exception caught!\n{ex}");
+                    Console.WriteLine($"*Exception caught while executing Client_VoiceStateUpdated()*\n{ex}");
                 }
             }
 
