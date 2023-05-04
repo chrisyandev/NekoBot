@@ -12,6 +12,7 @@ A Discord bot for personal use.
 - `!automutevc` command: Creates a voice channel where only allowed members can speak. Other members are server muted. Handles unmuting members when they join a voice channel in which they're allowed to speak. Automatically deletes voice channel when last person leaves. 
 - `!roles` command: Creates an embed that assigns/unassigns Tank, Healer, and DPS role when user clicks on the role's respective reaction.
 - `!createinvite` command: Creates an invite to the first channel member should see upon joining. Useful for setting a custom expiry time and # of uses.
+- `!createstage` command: Creates a Stage channel where the member invoking the command is the Stage Moderator.
 
 ## Notes
 

@@ -13,9 +13,6 @@ namespace NekoBot
         {
             var bot = new Bot();
 
-            Thread thread = new Thread(HttpServer.KeepAlive);
-            thread.Start();
-
             bot.RunAsync().GetAwaiter().GetResult();
         }
     }

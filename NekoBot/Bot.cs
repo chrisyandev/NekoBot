@@ -46,6 +46,7 @@ namespace NekoBot
             CommandsNext.RegisterCommands<BasicsModule>();
             CommandsNext.RegisterCommands<ReactionRoleModule>();
             CommandsNext.RegisterCommands<AutoMuteVoiceModule>();
+            CommandsNext.RegisterCommands<StageChannelsModule>();
 
             await Client.ConnectAsync();
             await Task.Delay(-1);
